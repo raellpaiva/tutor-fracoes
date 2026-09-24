@@ -49,14 +49,14 @@ def identificar_erro(
     return "erro_nao_identificado"
 
 
-@app.get("/tutoria")
+@app.get("/api/tutoria")
 def tutoria():
     return {
         "mensagem": "API do Tutor de Frações funcionando!"
     }
 
 
-@app.post("/tutoria")
+@app.post("/api/tutoria")
 def receber_tentativa(tentativa: TentativaAluno):
 
     try:
