@@ -22,7 +22,7 @@ botao.addEventListener("click", async () => {
     try {
 
         const respostaAPI = await fetch(
-            "/api/tutoria",
+            "/api/index",
             {
                 method: "POST",
 
