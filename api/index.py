@@ -1,0 +1,117 @@
+from fractions import Fraction
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class TentativaAluno(BaseModel):
+    problema: str
+    resposta: str
+    raciocinio: str
+
+
+def identificar_erro(
+    problema,
+    resposta_aluno,
+    resposta_original,
+    raciocinio
+):
+    if resposta_aluno is None:
+        return "resposta_invalida"
+
+    if resposta_aluno == problema:
+        return "correto"
+
+    raciocinio_normalizado = raciocinio.lower()
+
+    if (
+        "somei" in raciocinio_normalizado
+        and "numeradores" in raciocinio_normalizado
+        and "denominadores" in raciocinio_normalizado
+    ):
+        return "soma_direta"
+
+    if resposta_aluno == Fraction(1, 3):
+        return "denominador_nao_calculado"
+
+    return "erro_nao_identificado"
+
+
+@app.get("/tutoria")
+def tutoria():
+    return {
+        "mensagem": "API do Tutor de Frações funcionando!"
+    }
+
+
+@app.post("/tutoria")
+def receber_tentativa(tentativa: TentativaAluno):
+
+    try:
+        numerador, denominador = tentativa.resposta.split("/")
+
+        resposta_aluno = Fraction(
+            int(numerador),
+            int(denominador)
+        )
+
+    except (ValueError, ZeroDivisionError):
+        return {
+            "diagnostico": "resposta_invalida",
+            "intervencao": "Digite uma fração no formato 5/6."
+        }
+
+    problema = Fraction(1, 2) + Fraction(1, 3)
+
+    erro = identificar_erro(
+        problema,
+        resposta_aluno,
+        tentativa.resposta,
+        tentativa.raciocinio
+    )
+
+    if erro == "correto":
+        intervencao = (
+            "Muito bem! Seu raciocínio está correto."
+        )
+
+    elif erro == "soma_direta":
+        intervencao = (
+            "Você somou os numeradores e os denominadores "
+            "diretamente. Em uma adição de frações, "
+            "precisamos primeiro encontrar um denominador comum."
+        )
+
+    elif erro == "denominador_nao_calculado":
+        intervencao = (
+            "Observe sua resposta. Para somar frações, "
+            "precisamos transformar as frações em frações "
+            "equivalentes com um denominador comum."
+        )
+
+    else:
+        intervencao = (
+            "Sua resposta não está correta. "
+            "Vamos investigar passo a passo como você chegou "
+            "a esse resultado."
+        )
+
+    return {
+        "problema": tentativa.problema,
+        "resposta": tentativa.resposta,
+        "raciocinio": tentativa.raciocinio,
+        "diagnostico": erro,
+        "intervencao": intervencao
+    }
