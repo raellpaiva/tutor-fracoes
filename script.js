@@ -51,3 +51,36 @@ botao.addEventListener("click", async () => {
             "❌ Não consegui conectar ao Tutor. Verifique se o servidor está funcionando.";
     }
 });
+
+async function carregarNovoExercicio() {
+    try {
+        const respostaAPI = await fetch("/api/index");
+
+        if (!respostaAPI.ok) {
+            throw new Error("Erro ao buscar exercício");
+        }
+
+        const dados = await respostaAPI.json();
+
+        document.getElementById("problema").textContent =
+            dados.problema;
+
+        document.getElementById("resposta").value = "";
+        document.getElementById("raciocinio").value = "";
+
+        document.getElementById("resultado").textContent =
+            "O feedback aparecerá aqui.";
+
+    } catch (erro) {
+        console.error(erro);
+
+        document.getElementById("resultado").textContent =
+            "Não foi possível carregar um novo exercício.";
+    }
+}
+
+
+document.getElementById("novo-exercicio").addEventListener(
+    "click",
+    carregarNovoExercicio
+);
