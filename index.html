@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,32 +12,104 @@
 
 <body>
 
+    <!-- Elementos matemáticos decorativos -->
+
+    <div class="math-float math-1">½</div>
+    <div class="math-float math-2">+</div>
+    <div class="math-float math-3">⅓</div>
+    <div class="math-float math-4">=</div>
+    <div class="math-float math-5">?</div>
+    <div class="math-float math-6">π</div>
+
     <main class="container">
 
-        <h1>🧠 Tutor de Frações</h1>
+        <!-- Cabeçalho -->
 
-        <p class="instrucao">
-            Resolva o problema e explique como você chegou ao resultado.
-        </p>
+        <header class="cabecalho">
+
+            <div class="marca">
+                <span class="icone-cerebro">🧠</span>
+
+                <div>
+                    <span class="tag">PROTÓTIPO EDUCACIONAL</span>
+                    <h1>Tutor de Frações</h1>
+                </div>
+            </div>
+
+            <p class="instrucao">
+                Resolva o problema e explique como você chegou ao resultado.
+            </p>
+
+        </header>
+
+
+        <!-- Personagem -->
+
+        <div class="tutor-personagem">
+
+            <div class="robo">
+
+                <div class="antena"></div>
+
+                <div class="cabeca-robo">
+
+                    <div class="olho olho-esquerdo">+</div>
+                    <div class="olho olho-direito">÷</div>
+
+                </div>
+
+                <div class="corpo-robo">
+
+                    <span>∑</span>
+
+                </div>
+
+            </div>
+
+            <div class="balao">
+
+                <strong>Olá! Vamos investigar seu raciocínio?</strong>
+
+                <span>
+                    Não basta acertar. Quero entender como você pensou.
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- Problema -->
 
         <section class="problema">
 
-            <h2>Resolva:</h2>
+            <div class="etapa">
+                01 · RESOLVA
+            </div>
+
+            <h2>Qual é o resultado?</h2>
 
             <div class="fracao" id="problema">
                 1/2 + 1/3
             </div>
 
             <button id="novo-exercicio">
-                Novo exercício
+                ↻ Novo exercício
             </button>
 
         </section>
 
+
+        <!-- Resposta -->
+
         <section class="resposta">
 
+            <div class="etapa">
+                02 · EXPLIQUE
+            </div>
+
             <label for="resposta">
-                Sua resposta:
+                Sua resposta
             </label>
 
             <input
@@ -56,14 +129,27 @@
             ></textarea>
 
             <button id="verificar">
-                Verificar resposta
+                🧠 Analisar meu raciocínio
             </button>
 
         </section>
 
+
+        <!-- Feedback -->
+
         <section class="feedback">
 
-            <h2>💡 Feedback do tutor</h2>
+            <div class="etapa">
+                03 · TUTOR ANALISA
+            </div>
+
+            <div class="feedback-titulo">
+
+                <span class="lampada">💡</span>
+
+                <h2>Pista do tutor</h2>
+
+            </div>
 
             <div id="resultado">
                 O feedback aparecerá aqui.
@@ -71,9 +157,23 @@
 
         </section>
 
+
+        <!-- Rodapé -->
+
+        <footer>
+
+            <span>Matemática</span>
+            <span>•</span>
+            <span>Tutoria</span>
+            <span>•</span>
+            <span>Tecnologia</span>
+
+        </footer>
+
     </main>
 
     <script src="script.js"></script>
 
 </body>
+
 </html>
