@@ -57,6 +57,13 @@ def identificar_erro(
     ):
         return "soma_direta"
 
+    if (
+        "subtraí" in raciocinio_normalizado
+        and "numeradores" in raciocinio_normalizado
+        and "denominadores" in raciocinio_normalizado
+    ):
+        return "subtracao_direta"
+
     if resposta_aluno == Fraction(1, 3):
         return "denominador_nao_calculado"
 
@@ -143,6 +150,14 @@ def receber_tentativa(tentativa: TentativaAluno):
         intervencao = (
             "Você somou os numeradores e os denominadores "
             "diretamente. Em uma adição de frações, "
+            "precisamos primeiro encontrar um denominador comum."
+        )
+
+    elif erro == "subtracao_direta":
+
+        intervencao = (
+            "Você subtraiu os numeradores e os denominadores "
+            "diretamente. Na subtração de frações, "
             "precisamos primeiro encontrar um denominador comum."
         )
 
