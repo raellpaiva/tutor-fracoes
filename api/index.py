@@ -21,6 +21,58 @@ class TentativaAluno(BaseModel):
     resposta: str
     raciocinio: str
 
+PROBLEMAS = [
+    {
+        "id": 1,
+        "problema": "1/2 + 1/3",
+        "foco": "denominador_comum"
+    },
+    {
+        "id": 2,
+        "problema": "2/3 + 1/6",
+        "foco": "frações_equivalentes"
+    },
+    {
+        "id": 3,
+        "problema": "3/4 - 1/2",
+        "foco": "subtração"
+    },
+    {
+        "id": 4,
+        "problema": "2/5 + 3/10",
+        "foco": "denominadores_múltiplos"
+    },
+    {
+        "id": 5,
+        "problema": "1/3 + 1/3",
+        "foco": "mesmo_denominador"
+    },
+    {
+        "id": 6,
+        "problema": "3/4 - 1/4",
+        "foco": "subtração_mesmo_denominador"
+    },
+    {
+        "id": 7,
+        "problema": "2/3 - 1/6",
+        "foco": "equivalência_e_subtração"
+    },
+    {
+        "id": 8,
+        "problema": "1/2 + 2/5",
+        "foco": "denominadores_diferentes"
+    },
+    {
+        "id": 9,
+        "problema": "3/5 + 1/10",
+        "foco": "transformação_de_fração"
+    },
+    {
+        "id": 10,
+        "problema": "5/6 - 1/3",
+        "foco": "equivalência_e_subtração"
+    }
+]
 
 def identificar_erro(
     problema,
