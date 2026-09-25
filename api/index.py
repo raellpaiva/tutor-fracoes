@@ -124,6 +124,21 @@ def novo_exercicio():
         "problema": exercicio["problema"],
         "foco": exercicio["foco"]
     }
+def calcular_resposta(problema):
+    respostas = {
+        "1/2 + 1/3": Fraction(1, 2) + Fraction(1, 3),
+        "2/3 + 1/6": Fraction(2, 3) + Fraction(1, 6),
+        "3/4 - 1/2": Fraction(3, 4) - Fraction(1, 2),
+        "2/5 + 3/10": Fraction(2, 5) + Fraction(3, 10),
+        "1/3 + 1/3": Fraction(1, 3) + Fraction(1, 3),
+        "3/4 - 1/4": Fraction(3, 4) - Fraction(1, 4),
+        "2/3 - 1/6": Fraction(2, 3) - Fraction(1, 6),
+        "1/2 + 2/5": Fraction(1, 2) + Fraction(2, 5),
+        "3/5 + 1/10": Fraction(3, 5) + Fraction(1, 10),
+        "5/6 - 1/3": Fraction(5, 6) - Fraction(1, 3)
+    }
+
+    return respostas.get(problema)
 
 @app.post("/api/index")
 def receber_tentativa(tentativa: TentativaAluno):
@@ -142,7 +157,7 @@ def receber_tentativa(tentativa: TentativaAluno):
             "intervencao": "Digite uma fração no formato 5/6."
         }
 
-    problema = Fraction(1, 2) + Fraction(1, 3)
+    problema = calcular_resposta(tentativa.problema)
 
     erro = identificar_erro(
         problema,
