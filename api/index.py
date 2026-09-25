@@ -103,8 +103,14 @@ def identificar_erro(
 
 @app.get("/api/index")
 def tutoria():
+    import random
+
+    exercicio = random.choice(PROBLEMAS)
+
     return {
-        "mensagem": "API do Tutor de Frações funcionando!"
+        "id": exercicio["id"],
+        "problema": exercicio["problema"],
+        "foco": exercicio["foco"]
     }
 
 @app.get("/api/index/exercicio")
