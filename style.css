@@ -498,3 +498,38 @@ footer {
         opacity: 0.07;
     }
 }
+
+/* =========================
+   BOTÕES DE AÇÃO
+========================= */
+
+button {
+    border: 3px solid var(--preto);
+    padding: 13px 22px;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+button:hover {
+    transform: translate(-2px, -2px);
+}
+
+#novo-exercicio {
+    min-width: 190px;
+    padding: 14px 24px;
+    font-size: 1rem;
+    background: var(--amarelo);
+    color: var(--preto);
+    box-shadow: 5px 5px 0 var(--preto);
+}
+
+#verificar {
+    width: 100%;
+    padding: 17px 24px;
+    font-size: 1.1rem;
+    letter-spacing: 0.2px;
+    box-shadow: 6px 6px 0 var(--amarelo);
+}
