@@ -1,3 +1,5 @@
+import re
+import unicodedata
 from fractions import Fraction
 
 from fastapi import FastAPI
@@ -36,8 +38,58 @@ PROBLEMAS = [
 ]
 
 
+def normalizar_texto(texto):
+    """
+    Remove acentos, pontuação e caixa alta, para tornar
+    a checagem de palavras-chave mais tolerante à forma
+    como o aluno escreve.
+    """
+
+    texto = texto.lower().strip()
+
+    texto = unicodedata.normalize("NFKD", texto)
+    texto = texto.encode("ascii", "ignore").decode("ascii")
+
+    texto = re.sub(r"[^a-z0-9\s]", " ", texto)
+    texto = re.sub(r"\s+", " ", texto)
+
+    return texto
+
+
+# Sinônimos comuns para as operações, já sem acento
+# (compatível com a saída de normalizar_texto).
+SINONIMOS_SOMA = ("somei", "adicionei", "somando", "adicionando", "juntei")
+SINONIMOS_SUBTRACAO = ("subtrai", "subtraindo", "tirei", "diminui")
+PALAVRAS_NUMERADOR = ("numerador",)  # cobre "numerador" e "numeradores"
+PALAVRAS_DENOMINADOR = ("denominador",)  # cobre "denominador" e "denominadores"
+
+
+def contem_alguma(texto, palavras):
+    return any(palavra in texto for palavra in palavras)
+
+
+def parse_problema(problema_str):
+    """
+    Extrai (num1, den1, operador, num2, den2) de uma string
+    como "2/3 + 1/6" ou "3/4 - 1/2".
+    """
+
+    match = re.match(
+        r"\s*(\d+)/(\d+)\s*([+-])\s*(\d+)/(\d+)\s*",
+        problema_str
+    )
+
+    if not match:
+        return None
+
+    num1, den1, operador, num2, den2 = match.groups()
+
+    return int(num1), int(den1), operador, int(num2), int(den2)
+
+
 def identificar_erro(
-    problema,
+    problema_str,
+    resposta_correta,
     resposta_aluno,
     resposta_original,
     raciocinio
@@ -45,27 +97,38 @@ def identificar_erro(
     if resposta_aluno is None:
         return "resposta_invalida"
 
-    if resposta_aluno == problema:
+    if resposta_aluno == resposta_correta:
         return "correto"
 
-    raciocinio_normalizado = raciocinio.lower()
+    raciocinio_normalizado = normalizar_texto(raciocinio)
 
     if (
-        "somei" in raciocinio_normalizado
-        and "numeradores" in raciocinio_normalizado
-        and "denominadores" in raciocinio_normalizado
+        contem_alguma(raciocinio_normalizado, SINONIMOS_SOMA)
+        and contem_alguma(raciocinio_normalizado, PALAVRAS_NUMERADOR)
+        and contem_alguma(raciocinio_normalizado, PALAVRAS_DENOMINADOR)
     ):
         return "soma_direta"
 
     if (
-        "subtraí" in raciocinio_normalizado
-        and "numeradores" in raciocinio_normalizado
-        and "denominadores" in raciocinio_normalizado
+        contem_alguma(raciocinio_normalizado, SINONIMOS_SUBTRACAO)
+        and contem_alguma(raciocinio_normalizado, PALAVRAS_NUMERADOR)
+        and contem_alguma(raciocinio_normalizado, PALAVRAS_DENOMINADOR)
     ):
         return "subtracao_direta"
 
-    if resposta_aluno == Fraction(1, 3):
-        return "denominador_nao_calculado"
+    # Generalização: o aluno usou um dos denominadores originais
+    # como denominador final, em vez de calcular um denominador
+    # comum (antes, isso só era checado para o caso fixo 1/2 + 1/3).
+    partes = parse_problema(problema_str)
+
+    if partes:
+        _, den1, _, _, den2 = partes
+
+        if (
+            resposta_aluno.denominator in (den1, den2)
+            and resposta_aluno.denominator != resposta_correta.denominator
+        ):
+            return "denominador_nao_calculado"
 
     return "erro_nao_identificado"
 
@@ -130,10 +193,17 @@ def receber_tentativa(tentativa: TentativaAluno):
             "intervencao": "Digite uma fração no formato 5/6."
         }
 
-    problema = calcular_resposta(tentativa.problema)
+    resposta_correta = calcular_resposta(tentativa.problema)
+
+    if resposta_correta is None:
+        return {
+            "diagnostico": "problema_nao_reconhecido",
+            "intervencao": "Não reconheço esse problema. Peça um novo exercício."
+        }
 
     erro = identificar_erro(
-        problema,
+        tentativa.problema,
+        resposta_correta,
         resposta_aluno,
         tentativa.resposta,
         tentativa.raciocinio
