@@ -107,6 +107,17 @@ def tutoria():
         "mensagem": "API do Tutor de Frações funcionando!"
     }
 
+@app.get("/api/index/exercicio")
+def novo_exercicio():
+    import random
+
+    exercicio = random.choice(PROBLEMAS)
+
+    return {
+        "id": exercicio["id"],
+        "problema": exercicio["problema"],
+        "foco": exercicio["foco"]
+    }
 
 @app.post("/api/index")
 def receber_tentativa(tentativa: TentativaAluno):
