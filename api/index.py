@@ -21,58 +21,20 @@ class TentativaAluno(BaseModel):
     resposta: str
     raciocinio: str
 
+
 PROBLEMAS = [
-    {
-        "id": 1,
-        "problema": "1/2 + 1/3",
-        "foco": "denominador_comum"
-    },
-    {
-        "id": 2,
-        "problema": "2/3 + 1/6",
-        "foco": "frações_equivalentes"
-    },
-    {
-        "id": 3,
-        "problema": "3/4 - 1/2",
-        "foco": "subtração"
-    },
-    {
-        "id": 4,
-        "problema": "2/5 + 3/10",
-        "foco": "denominadores_múltiplos"
-    },
-    {
-        "id": 5,
-        "problema": "1/3 + 1/3",
-        "foco": "mesmo_denominador"
-    },
-    {
-        "id": 6,
-        "problema": "3/4 - 1/4",
-        "foco": "subtração_mesmo_denominador"
-    },
-    {
-        "id": 7,
-        "problema": "2/3 - 1/6",
-        "foco": "equivalência_e_subtração"
-    },
-    {
-        "id": 8,
-        "problema": "1/2 + 2/5",
-        "foco": "denominadores_diferentes"
-    },
-    {
-        "id": 9,
-        "problema": "3/5 + 1/10",
-        "foco": "transformação_de_fração"
-    },
-    {
-        "id": 10,
-        "problema": "5/6 - 1/3",
-        "foco": "equivalência_e_subtração"
-    }
+    {"id": 1, "problema": "1/2 + 1/3", "foco": "denominador_comum"},
+    {"id": 2, "problema": "2/3 + 1/6", "foco": "frações_equivalentes"},
+    {"id": 3, "problema": "3/4 - 1/2", "foco": "subtração"},
+    {"id": 4, "problema": "2/5 + 3/10", "foco": "denominadores_múltiplos"},
+    {"id": 5, "problema": "1/3 + 1/3", "foco": "mesmo_denominador"},
+    {"id": 6, "problema": "3/4 - 1/4", "foco": "subtração_mesmo_denominador"},
+    {"id": 7, "problema": "2/3 - 1/6", "foco": "equivalência_e_subtração"},
+    {"id": 8, "problema": "1/2 + 2/5", "foco": "denominadores_diferentes"},
+    {"id": 9, "problema": "3/5 + 1/10", "foco": "transformação_de_fração"},
+    {"id": 10, "problema": "5/6 - 1/3", "foco": "equivalência_e_subtração"},
 ]
+
 
 def identificar_erro(
     problema,
@@ -101,29 +63,6 @@ def identificar_erro(
     return "erro_nao_identificado"
 
 
-@app.get("/api/index")
-def tutoria():
-    import random
-
-    exercicio = random.choice(PROBLEMAS)
-
-    return {
-        "id": exercicio["id"],
-        "problema": exercicio["problema"],
-        "foco": exercicio["foco"]
-    }
-
-@app.get("/api/index/exercicio")
-def novo_exercicio():
-    import random
-
-    exercicio = random.choice(PROBLEMAS)
-
-    return {
-        "id": exercicio["id"],
-        "problema": exercicio["problema"],
-        "foco": exercicio["foco"]
-    }
 def calcular_resposta(problema):
     respostas = {
         "1/2 + 1/3": Fraction(1, 2) + Fraction(1, 3),
@@ -135,10 +74,37 @@ def calcular_resposta(problema):
         "2/3 - 1/6": Fraction(2, 3) - Fraction(1, 6),
         "1/2 + 2/5": Fraction(1, 2) + Fraction(2, 5),
         "3/5 + 1/10": Fraction(3, 5) + Fraction(1, 10),
-        "5/6 - 1/3": Fraction(5, 6) - Fraction(1, 3)
+        "5/6 - 1/3": Fraction(5, 6) - Fraction(1, 3),
     }
 
     return respostas.get(problema)
+
+
+@app.get("/api/index")
+def tutoria():
+    import random
+
+    exercicio = random.choice(PROBLEMAS)
+
+    return {
+        "id": exercicio["id"],
+        "problema": exercicio["problema"],
+        "foco": exercicio["foco"],
+    }
+
+
+@app.get("/api/index/exercicio")
+def novo_exercicio():
+    import random
+
+    exercicio = random.choice(PROBLEMAS)
+
+    return {
+        "id": exercicio["id"],
+        "problema": exercicio["problema"],
+        "foco": exercicio["foco"],
+    }
+
 
 @app.post("/api/index")
 def receber_tentativa(tentativa: TentativaAluno):
@@ -167,11 +133,13 @@ def receber_tentativa(tentativa: TentativaAluno):
     )
 
     if erro == "correto":
+
         intervencao = (
             "Muito bem! Seu raciocínio está correto."
         )
 
     elif erro == "soma_direta":
+
         intervencao = (
             "Você somou os numeradores e os denominadores "
             "diretamente. Em uma adição de frações, "
@@ -179,13 +147,25 @@ def receber_tentativa(tentativa: TentativaAluno):
         )
 
     elif erro == "denominador_nao_calculado":
-        intervencao = (
-            "Observe sua resposta. Para somar frações, "
-            "precisamos transformar as frações em frações "
-            "equivalentes com um denominador comum."
-        )
+
+        if "-" in tentativa.problema:
+
+            intervencao = (
+                "Observe sua resposta. Para subtrair frações, "
+                "precisamos transformar as frações em frações "
+                "equivalentes com um denominador comum."
+            )
+
+        else:
+
+            intervencao = (
+                "Observe sua resposta. Para somar frações, "
+                "precisamos transformar as frações em frações "
+                "equivalentes com um denominador comum."
+            )
 
     else:
+
         intervencao = (
             "Sua resposta não está correta. "
             "Vamos investigar passo a passo como você chegou "
