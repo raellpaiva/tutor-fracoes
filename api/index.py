@@ -1,7 +1,10 @@
+import json
+import os
 import re
 import unicodedata
 from fractions import Fraction
 
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -133,6 +136,80 @@ def identificar_erro(
     return "erro_nao_identificado"
 
 
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_MODEL = "gemini-2.5-flash-lite"
+GEMINI_URL = (
+    f"https://generativelanguage.googleapis.com/v1beta/models/"
+    f"{GEMINI_MODEL}:generateContent"
+)
+
+
+def diagnosticar_com_ia(problema_str, resposta_correta, resposta_aluno, raciocinio):
+    """
+    Fallback usado apenas quando o diagnóstico baseado em regras
+    (identificar_erro) não reconhece o padrão do erro. Chama a API
+    gratuita do Gemini para interpretar o raciocínio do aluno em
+    linguagem natural.
+
+    Retorna None se a chave não estiver configurada ou se a chamada
+    falhar por qualquer motivo — nesse caso, quem chamou deve usar
+    a intervenção genérica como fallback final.
+    """
+
+    if not GEMINI_API_KEY:
+        return None
+
+    prompt = (
+        "Você é um tutor de Matemática analisando o erro de um aluno em "
+        "uma operação com frações. Não revele a resposta correta.\n\n"
+        f"Problema: {problema_str}\n"
+        f"Resposta correta (não revele ao aluno): {resposta_correta}\n"
+        f"Resposta do aluno: {resposta_aluno}\n"
+        f"Raciocínio relatado pelo aluno: {raciocinio}\n\n"
+        "Responda APENAS com um JSON válido, sem markdown, no formato:\n"
+        '{"diagnostico": "<categoria curta em snake_case>", '
+        '"intervencao": "<uma ou duas frases em português, dando uma '
+        "pista que ajude o aluno a encontrar o próprio erro, sem "
+        'revelar a resposta final>"}'
+    )
+
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.3},
+    }
+
+    try:
+        response = httpx.post(
+            GEMINI_URL,
+            params={"key": GEMINI_API_KEY},
+            json=payload,
+            timeout=8.0,
+        )
+        response.raise_for_status()
+
+        data = response.json()
+        texto = data["candidates"][0]["content"]["parts"][0]["text"]
+
+        # O modelo às vezes envolve o JSON em ```json ... ``` mesmo
+        # quando instruído a não fazer isso — removemos por segurança.
+        texto = texto.strip().strip("`")
+        if texto.startswith("json"):
+            texto = texto[4:].strip()
+
+        resultado = json.loads(texto)
+
+        if "diagnostico" not in resultado or "intervencao" not in resultado:
+            return None
+
+        return resultado
+
+    except (httpx.HTTPError, KeyError, IndexError, ValueError, json.JSONDecodeError):
+        # Qualquer falha (rede, limite de taxa, resposta mal formada)
+        # cai no fallback determinístico — o aluno nunca fica sem
+        # resposta por causa de um problema na chamada de IA.
+        return None
+
+
 def calcular_resposta(problema):
     respostas = {
         "1/2 + 1/3": Fraction(1, 2) + Fraction(1, 3),
@@ -250,12 +327,25 @@ def receber_tentativa(tentativa: TentativaAluno):
             )
 
     else:
-
-        intervencao = (
-            "Sua resposta não está correta. "
-            "Vamos investigar passo a passo como você chegou "
-            "a esse resultado."
+        # erro_nao_identificado: as regras não reconheceram o padrão.
+        # Tentamos o fallback de IA (Gemini); se indisponível ou
+        # falhar, usamos a mensagem genérica de sempre.
+        diagnostico_ia = diagnosticar_com_ia(
+            tentativa.problema,
+            resposta_correta,
+            resposta_aluno,
+            tentativa.raciocinio
         )
+
+        if diagnostico_ia:
+            erro = diagnostico_ia["diagnostico"]
+            intervencao = diagnostico_ia["intervencao"]
+        else:
+            intervencao = (
+                "Sua resposta não está correta. "
+                "Vamos investigar passo a passo como você chegou "
+                "a esse resultado."
+            )
 
     return {
         "problema": tentativa.problema,
