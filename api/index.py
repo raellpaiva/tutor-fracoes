@@ -258,9 +258,12 @@ Retorne SOMENTE um JSON válido neste formato:
 
         return resultado
 
-    except Exception as erro:
-        print("Erro ao consultar Gemini:", erro)
-        return None
+   except Exception as erro:
+    print("ERRO GEMINI:", repr(erro))
+    if hasattr(erro, "response") and erro.response is not None:
+        print("STATUS GEMINI:", erro.response.status_code)
+        print("RESPOSTA GEMINI:", erro.response.text)
+    return None
 
 
 def calcular_resposta(problema):
