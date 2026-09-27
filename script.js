@@ -1,7 +1,7 @@
-```javascript
 let problemaAtual = "1/2 + 1/3";
 
 const botao = document.getElementById("verificar");
+const botaoNovoExercicio = document.getElementById("novo-exercicio");
 
 botao.addEventListener("click", async () => {
     const resposta = document.getElementById("resposta").value.trim();
@@ -11,64 +11,75 @@ botao.addEventListener("click", async () => {
     if (!resposta || !raciocinio) {
         resultado.textContent =
             "⚠️ Preencha sua resposta e explique como você resolveu.";
-
         return;
     }
 
-    resultado.textContent =
-        "🧠 Analisando sua tentativa...";
+    resultado.textContent = "🧠 Analisando sua tentativa...";
 
     try {
-        const respostaAPI = await fetch(
-            "/api/index",
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type": "application/json"
-                },
-
-                body: JSON.stringify({
-                    problema: problemaAtual,
-                    resposta: resposta,
-                    raciocinio: raciocinio
-                })
-            }
-        );
+        const respostaAPI = await fetch("/api/index", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                problema: problemaAtual,
+                resposta: resposta,
+                raciocinio: raciocinio
+            })
+        });
 
         const textoResposta = await respostaAPI.text();
 
         console.log("STATUS:", respostaAPI.status);
         console.log("RESPOSTA DA API:", textoResposta);
 
+        if (!respostaAPI.ok) {
+            throw new Error(
+                `Erro da API: ${respostaAPI.status} - ${textoResposta}`
+            );
+        }
+
         let dados;
 
         try {
             dados = JSON.parse(textoResposta);
         } catch (erro) {
+            console.error("Erro ao interpretar JSON:", erro);
+
             resultado.textContent =
-                "❌ A API retornou uma resposta que não pôde ser interpretada.";
+                "❌ A API retornou uma resposta inválida.";
 
             return;
         }
 
-        resultado.textContent = dados.intervencao;
+        if (dados.intervencao) {
+            resultado.textContent = dados.intervencao;
+        } else {
+            resultado.textContent =
+                "❌ A API não retornou uma intervenção.";
+        }
 
     } catch (erro) {
-        console.error(erro);
+        console.error("Erro na comunicação com a API:", erro);
 
         resultado.textContent =
             "❌ Não consegui conectar ao Tutor. Verifique se o servidor está funcionando.";
     }
 });
 
-
 async function carregarNovoExercicio() {
+    const resultado = document.getElementById("resultado");
+
     try {
+        resultado.textContent = "🔄 Carregando novo exercício...";
+
         const respostaAPI = await fetch("/api/index");
 
         if (!respostaAPI.ok) {
-            throw new Error("Erro ao buscar exercício");
+            throw new Error(
+                `Erro ao buscar exercício: ${respostaAPI.status}`
+            );
         }
 
         const dados = await respostaAPI.json();
@@ -81,20 +92,18 @@ async function carregarNovoExercicio() {
         document.getElementById("resposta").value = "";
         document.getElementById("raciocinio").value = "";
 
-        document.getElementById("resultado").textContent =
+        resultado.textContent =
             "O feedback aparecerá aqui.";
 
     } catch (erro) {
-        console.error(erro);
+        console.error("Erro ao carregar exercício:", erro);
 
-        document.getElementById("resultado").textContent =
-            "Não foi possível carregar um novo exercício.";
+        resultado.textContent =
+            "❌ Não foi possível carregar um novo exercício.";
     }
 }
 
-
-document.getElementById("novo-exercicio").addEventListener(
+botaoNovoExercicio.addEventListener(
     "click",
     carregarNovoExercicio
 );
-```
