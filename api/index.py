@@ -42,12 +42,6 @@ PROBLEMAS = [
 
 
 def normalizar_texto(texto):
-    """
-    Remove acentos, pontuação e caixa alta, para tornar
-    a checagem de palavras-chave mais tolerante à forma
-    como o aluno escreve.
-    """
-
     texto = texto.lower().strip()
 
     texto = unicodedata.normalize("NFKD", texto)
@@ -59,12 +53,23 @@ def normalizar_texto(texto):
     return texto
 
 
-# Sinônimos comuns para as operações, já sem acento
-# (compatível com a saída de normalizar_texto).
-SINONIMOS_SOMA = ("somei", "adicionei", "somando", "adicionando", "juntei")
-SINONIMOS_SUBTRACAO = ("subtrai", "subtraindo", "tirei", "diminui")
-PALAVRAS_NUMERADOR = ("numerador",)  # cobre "numerador" e "numeradores"
-PALAVRAS_DENOMINADOR = ("denominador",)  # cobre "denominador" e "denominadores"
+SINONIMOS_SOMA = (
+    "somei",
+    "adicionei",
+    "somando",
+    "adicionando",
+    "juntei",
+)
+
+SINONIMOS_SUBTRACAO = (
+    "subtrai",
+    "subtraindo",
+    "tirei",
+    "diminui",
+)
+
+PALAVRAS_NUMERADOR = ("numerador",)
+PALAVRAS_DENOMINADOR = ("denominador",)
 
 
 def contem_alguma(texto, palavras):
@@ -72,11 +77,6 @@ def contem_alguma(texto, palavras):
 
 
 def parse_problema(problema_str):
-    """
-    Extrai (num1, den1, operador, num2, den2) de uma string
-    como "2/3 + 1/6" ou "3/4 - 1/2".
-    """
-
     match = re.match(
         r"\s*(\d+)/(\d+)\s*([+-])\s*(\d+)/(\d+)\s*",
         problema_str
@@ -119,9 +119,6 @@ def identificar_erro(
     ):
         return "subtracao_direta"
 
-    # Generalização: o aluno usou um dos denominadores originais
-    # como denominador final, em vez de calcular um denominador
-    # comum (antes, isso só era checado para o caso fixo 1/2 + 1/3).
     partes = parse_problema(problema_str)
 
     if partes:
@@ -137,45 +134,93 @@ def identificar_erro(
 
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
 GEMINI_MODEL = "gemini-3.5-flash-lite"
+
 GEMINI_URL = (
     f"https://generativelanguage.googleapis.com/v1beta/models/"
     f"{GEMINI_MODEL}:generateContent"
 )
 
 
-def diagnosticar_com_ia(problema_str, resposta_correta, resposta_aluno, raciocinio):
+def diagnosticar_com_ia(
+    problema_str,
+    resposta_correta,
+    resposta_aluno,
+    raciocinio,
+    diagnostico
+):
     """
-    Fallback usado apenas quando o diagnóstico baseado em regras
-    (identificar_erro) não reconhece o padrão do erro. Chama a API
-    gratuita do Gemini para interpretar o raciocínio do aluno em
-    linguagem natural.
-
-    Retorna None se a chave não estiver configurada ou se a chamada
-    falhar por qualquer motivo — nesse caso, quem chamou deve usar
-    a intervenção genérica como fallback final.
+    Usa o Gemini para interpretar o raciocínio do aluno
+    e produzir uma intervenção pedagógica personalizada.
     """
 
     if not GEMINI_API_KEY:
         return None
 
-    prompt = (
-        "Você é um tutor de Matemática analisando o erro de um aluno em "
-        "uma operação com frações. Não revele a resposta correta.\n\n"
-        f"Problema: {problema_str}\n"
-        f"Resposta correta (não revele ao aluno): {resposta_correta}\n"
-        f"Resposta do aluno: {resposta_aluno}\n"
-        f"Raciocínio relatado pelo aluno: {raciocinio}\n\n"
-        "Responda APENAS com um JSON válido, sem markdown, no formato:\n"
-        '{"diagnostico": "<categoria curta em snake_case>", '
-        '"intervencao": "<uma ou duas frases em português, dando uma '
-        "pista que ajude o aluno a encontrar o próprio erro, sem "
-        'revelar a resposta final>"}'
-    )
+    prompt = f"""
+Você é o Tutor Inteligente de Frações.
+
+Sua função é ajudar um estudante a aprender adição e subtração
+de frações por meio de perguntas e pistas graduais.
+
+NÃO entregue a resposta final do exercício.
+
+Analise principalmente o RACIOCÍNIO escrito pelo estudante.
+
+Dados da tentativa:
+
+Problema:
+{problema_str}
+
+Resposta correta (informação interna, NÃO revele):
+{resposta_correta}
+
+Resposta do estudante:
+{resposta_aluno}
+
+Raciocínio do estudante:
+{raciocinio}
+
+Diagnóstico preliminar do sistema:
+{diagnostico}
+
+Sua tarefa:
+
+1. Identifique o ponto do raciocínio em que o estudante
+   provavelmente encontrou dificuldade.
+
+2. Produza uma intervenção personalizada relacionada
+   diretamente ao que o estudante escreveu.
+
+3. Faça apenas uma pergunta ou proponha um próximo passo.
+
+4. Não entregue a resposta final.
+
+5. Use português brasileiro simples, claro e encorajador.
+
+6. Não diga apenas que a resposta está errada.
+
+7. Não faça uma explicação longa.
+
+Retorne SOMENTE um JSON válido neste formato:
+
+{{
+    "diagnostico": "categoria_curta",
+    "intervencao": "uma ou duas frases personalizadas para o estudante"
+}}
+"""
 
     payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.3},
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "text": prompt
+                    }
+                ]
+            }
+        ]
     }
 
     try:
@@ -183,30 +228,38 @@ def diagnosticar_com_ia(problema_str, resposta_correta, resposta_aluno, raciocin
             GEMINI_URL,
             params={"key": GEMINI_API_KEY},
             json=payload,
-            timeout=8.0,
+            timeout=15.0,
         )
+
         response.raise_for_status()
 
         data = response.json()
+
         texto = data["candidates"][0]["content"]["parts"][0]["text"]
 
-        # O modelo às vezes envolve o JSON em ```json ... ``` mesmo
-        # quando instruído a não fazer isso — removemos por segurança.
-        texto = texto.strip().strip("`")
-        if texto.startswith("json"):
-            texto = texto[4:].strip()
+        texto = texto.strip()
+
+        if texto.startswith("```"):
+            texto = re.sub(r"^```(?:json)?", "", texto)
+            texto = re.sub(r"```$", "", texto)
+            texto = texto.strip()
 
         resultado = json.loads(texto)
 
-        if "diagnostico" not in resultado or "intervencao" not in resultado:
+        if (
+            not isinstance(resultado, dict)
+            or "diagnostico" not in resultado
+            or "intervencao" not in resultado
+        ):
+            return None
+
+        if not resultado["intervencao"].strip():
             return None
 
         return resultado
 
-    except (httpx.HTTPError, KeyError, IndexError, ValueError, json.JSONDecodeError):
-        # Qualquer falha (rede, limite de taxa, resposta mal formada)
-        # cai no fallback determinístico — o aluno nunca fica sem
-        # resposta por causa de um problema na chamada de IA.
+    except Exception as erro:
+        print("Erro ao consultar Gemini:", erro)
         return None
 
 
@@ -267,7 +320,10 @@ def receber_tentativa(tentativa: TentativaAluno):
     except (ValueError, ZeroDivisionError):
         return {
             "diagnostico": "resposta_invalida",
-            "intervencao": "Digite uma fração no formato 5/6."
+            "intervencao": (
+                "Digite sua resposta no formato de uma fração, "
+                "como 5/6."
+            )
         }
 
     resposta_correta = calcular_resposta(tentativa.problema)
@@ -275,7 +331,10 @@ def receber_tentativa(tentativa: TentativaAluno):
     if resposta_correta is None:
         return {
             "diagnostico": "problema_nao_reconhecido",
-            "intervencao": "Não reconheço esse problema. Peça um novo exercício."
+            "intervencao": (
+                "Não reconheço esse exercício. "
+                "Tente carregar um novo exercício."
+            )
         }
 
     erro = identificar_erro(
@@ -286,65 +345,71 @@ def receber_tentativa(tentativa: TentativaAluno):
         tentativa.raciocinio
     )
 
+    # Resposta correta continua sendo verificada
+    # deterministicamente pelo Python.
     if erro == "correto":
 
         intervencao = (
-            "Muito bem! Seu raciocínio está correto."
+            "Muito bem! Seu raciocínio está correto. "
+            "Você conseguiu resolver a operação."
         )
 
-    elif erro == "soma_direta":
+        return {
+            "problema": tentativa.problema,
+            "resposta": tentativa.resposta,
+            "raciocinio": tentativa.raciocinio,
+            "diagnostico": erro,
+            "intervencao": intervencao
+        }
 
-        intervencao = (
-            "Você somou os numeradores e os denominadores "
-            "diretamente. Em uma adição de frações, "
-            "precisamos primeiro encontrar um denominador comum."
-        )
+    # Para respostas incorretas, a IA passa a analisar
+    # o raciocínio e produzir a intervenção.
+    diagnostico_ia = diagnosticar_com_ia(
+        tentativa.problema,
+        resposta_correta,
+        resposta_aluno,
+        tentativa.raciocinio,
+        erro
+    )
 
-    elif erro == "subtracao_direta":
+    if diagnostico_ia:
 
-        intervencao = (
-            "Você subtraiu os numeradores e os denominadores "
-            "diretamente. Na subtração de frações, "
-            "precisamos primeiro encontrar um denominador comum."
-        )
+        erro = diagnostico_ia["diagnostico"]
 
-    elif erro == "denominador_nao_calculado":
-
-        if "-" in tentativa.problema:
-
-            intervencao = (
-                "Observe sua resposta. Para subtrair frações, "
-                "precisamos transformar as frações em frações "
-                "equivalentes com um denominador comum."
-            )
-
-        else:
-
-            intervencao = (
-                "Observe sua resposta. Para somar frações, "
-                "precisamos transformar as frações em frações "
-                "equivalentes com um denominador comum."
-            )
+        intervencao = diagnostico_ia["intervencao"]
 
     else:
-        # erro_nao_identificado: as regras não reconheceram o padrão.
-        # Tentamos o fallback de IA (Gemini); se indisponível ou
-        # falhar, usamos a mensagem genérica de sempre.
-        diagnostico_ia = diagnosticar_com_ia(
-            tentativa.problema,
-            resposta_correta,
-            resposta_aluno,
-            tentativa.raciocinio
-        )
 
-        if diagnostico_ia:
-            erro = diagnostico_ia["diagnostico"]
-            intervencao = diagnostico_ia["intervencao"]
-        else:
+        # Fallback caso a IA esteja indisponível.
+        if erro == "soma_direta":
+
             intervencao = (
-                "Sua resposta não está correta. "
-                "Vamos investigar passo a passo como você chegou "
-                "a esse resultado."
+                "Você somou os numeradores e os denominadores "
+                "diretamente. Antes de fazer essa operação, "
+                "o que precisamos observar nos denominadores?"
+            )
+
+        elif erro == "subtracao_direta":
+
+            intervencao = (
+                "Você subtraiu os numeradores e os denominadores "
+                "diretamente. Antes de continuar, o que precisamos "
+                "fazer quando os denominadores são diferentes?"
+            )
+
+        elif erro == "denominador_nao_calculado":
+
+            intervencao = (
+                "Observe os denominadores das duas frações. "
+                "Que número poderia ser usado como denominador comum?"
+            )
+
+        else:
+
+            intervencao = (
+                "Vamos investigar seu raciocínio. "
+                "Qual foi o primeiro passo que você realizou "
+                "para tentar resolver essa operação?"
             )
 
     return {
