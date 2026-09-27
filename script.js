@@ -1,15 +1,14 @@
- let problemaAtual = "1/2 + 1/3";
+```javascript
+let problemaAtual = "1/2 + 1/3";
 
 const botao = document.getElementById("verificar");
 
 botao.addEventListener("click", async () => {
-
     const resposta = document.getElementById("resposta").value.trim();
     const raciocinio = document.getElementById("raciocinio").value.trim();
     const resultado = document.getElementById("resultado");
 
     if (!resposta || !raciocinio) {
-
         resultado.textContent =
             "⚠️ Preencha sua resposta e explique como você resolveu.";
 
@@ -20,7 +19,6 @@ botao.addEventListener("click", async () => {
         "🧠 Analisando sua tentativa...";
 
     try {
-
         const respostaAPI = await fetch(
             "/api/index",
             {
@@ -38,12 +36,25 @@ botao.addEventListener("click", async () => {
             }
         );
 
-        const dados = await respostaAPI.json();
+        const textoResposta = await respostaAPI.text();
+
+        console.log("STATUS:", respostaAPI.status);
+        console.log("RESPOSTA DA API:", textoResposta);
+
+        let dados;
+
+        try {
+            dados = JSON.parse(textoResposta);
+        } catch (erro) {
+            resultado.textContent =
+                "❌ A API retornou uma resposta que não pôde ser interpretada.";
+
+            return;
+        }
 
         resultado.textContent = dados.intervencao;
 
     } catch (erro) {
-
         console.error(erro);
 
         resultado.textContent =
@@ -53,9 +64,7 @@ botao.addEventListener("click", async () => {
 
 
 async function carregarNovoExercicio() {
-
     try {
-
         const respostaAPI = await fetch("/api/index");
 
         if (!respostaAPI.ok) {
@@ -76,7 +85,6 @@ async function carregarNovoExercicio() {
             "O feedback aparecerá aqui.";
 
     } catch (erro) {
-
         console.error(erro);
 
         document.getElementById("resultado").textContent =
@@ -89,3 +97,4 @@ document.getElementById("novo-exercicio").addEventListener(
     "click",
     carregarNovoExercicio
 );
+```
