@@ -1,12 +1,44 @@
 let problemaAtual = "1/2 + 1/3";
+let tentativaN = 0;
+
+// ---- Registro das tentativas (planilha Google) ----
+// Cole aqui a URL do Apps Script (termina em /exec) e o mesmo token do script.
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycbyMT9EAwGkyzjenUYA8htiCDOPiMUxuGUH8wmfwiohUfTCK3Tb1Yqvh-wHfW28tQ1szHw/exec";
+const SHEETS_TOKEN = "TUTOR_FRACOES";
+const CODIGO_VALIDO = /^[A-Za-z0-9-]{3,12}$/;
+
+function registrarTentativa(dados) {
+    if (!SHEETS_URL || SHEETS_URL.includes("COLE_AQUI")) {
+        return;
+    }
+
+    try {
+        fetch(SHEETS_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ token: SHEETS_TOKEN, ...dados }),
+            keepalive: true
+        }).catch((erro) => console.warn("Registro falhou:", erro));
+    } catch (erro) {
+        console.warn("Registro falhou:", erro);
+    }
+}
 
 const botao = document.getElementById("verificar");
 const botaoNovoExercicio = document.getElementById("novo-exercicio");
 
 botao.addEventListener("click", async () => {
+    const codigo = document.getElementById("codigo").value.trim().toUpperCase();
     const resposta = document.getElementById("resposta").value.trim();
     const raciocinio = document.getElementById("raciocinio").value.trim();
     const resultado = document.getElementById("resultado");
+
+    if (!CODIGO_VALIDO.test(codigo)) {
+        resultado.textContent =
+            "⚠️ Digite seu código (exemplo: 7A-14). Não use seu nome.";
+        return;
+    }
 
     if (!resposta || !raciocinio) {
         resultado.textContent =
@@ -53,6 +85,19 @@ botao.addEventListener("click", async () => {
             return;
         }
 
+        tentativaN += 1;
+
+        registrarTentativa({
+            codigo: codigo,
+            problema: problemaAtual,
+            resposta: resposta,
+            raciocinio: raciocinio,
+            diagnostico: dados.diagnostico || "",
+            origem: dados.origem || "",
+            correta: dados.diagnostico === "correto",
+            tentativa_n: tentativaN
+        });
+
         if (dados.intervencao) {
             resultado.textContent = dados.intervencao;
         } else {
@@ -85,6 +130,7 @@ async function carregarNovoExercicio() {
         const dados = await respostaAPI.json();
 
         problemaAtual = dados.problema;
+        tentativaN = 0;
 
         document.getElementById("problema").textContent =
             problemaAtual;
